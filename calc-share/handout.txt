@@ -1,0 +1,542 @@
+//-------------------------------------------------------//
+// The complete set of files for the calculator compiler //
+//-------------------------------------------------------// 
+
+// --------------- calculator.cc ------------------
+
+#include <iostream>
+#include "globals.h"
+
+int main(void) {
+  TreeNode* icode = statements(); // top-level function for parser
+  if (icode == NULL) {
+    cerr << "no top-level expression\n";
+    exit(1);
+  }
+  analyze(icode);
+  codeGenStmt(icode);
+  printCode();
+  return 0;
+}
+
+// --------------- globals.h ------------------
+
+#include <stdlib.h>
+
+#ifndef _GLOBALS_H
+#define _GLOBALS_H
+
+// named token class
+#define ENDFILE 256
+#define ERROR   257
+#define NUM     258
+#define PLUS    259
+#define TIMES   260
+#define LPAREN  261
+#define RPAREN  262
+#define SUB     263
+#define DIV     264
+#define ID      265
+#define ASSIGN  266
+#define OUT     267
+#define SEMI    268
+
+using namespace std;
+
+/* This is C-version of the TokenType class 
+
+typedef struct {
+  int TokenClass;  // one of the above
+  char* TokenString;
+} TokenType; 
+
+*/
+
+class TokenType {
+public:
+  int    TokenClass;  // one of the above
+  string TokenString;
+};
+
+#define MAXCHILDREN 2
+
+class TreeNode {
+public:
+    TreeNode * child[MAXCHILDREN];
+    int  op;
+    int  val;
+    char id;
+};
+
+#define ST_SIZE 26 // ST: Symbol Table
+
+#define CODESIZE 100
+
+typedef enum {RO,RM} OpCodeType;
+
+class CodeType {
+public:
+  string     opcode;
+  OpCodeType ctype;
+  int rand1;
+  int rand2;
+  int rand3;
+};
+
+/* 
+ * Following are the top-level functions for 
+ * each of the phases of the compiler.
+ */
+TokenType getToken(void);
+TreeNode * statements(void);
+void analyze(TreeNode*);
+void codeGenStmt(TreeNode*);
+void emit(string,OpCodeType,int,int,int);
+void printCode(void);
+
+#endif
+
+// --------------- scan.cc ------------------
+
+#include <iostream>
+#include <stdio.h>
+#include <ctype.h>
+#include "globals.h"
+
+/* Lexical Analyzer for the calculator language */
+
+/* states in the scanner DFA */
+typedef enum { 
+  START,INNUM,DONE 
+} StateType;
+
+bool LayOutCharacter(char c) {
+  return ((c == ' ') || (c == '\t') || (c == '\n'));
+}
+
+TokenType getToken(void) {  
+   /* holds current token to be returned */
+   TokenType currentToken;
+   /* current state - always begins at START */
+   StateType state = START;
+   /* next character */
+   char c;
+   /* flag to indicate if c is part of the current token */
+   bool putback = false; /* putback == true => no */
+
+   do {
+     c = cin.get();
+   } while (LayOutCharacter(c));
+
+   // main tokenizer loop: one character at a time
+   while (state != DONE) {
+     switch (state) {
+     case START:
+       if (isdigit(c))
+	 state = INNUM;
+       else if ('a' <= c && c <= 'z') {
+	 state = DONE;
+	 currentToken.TokenClass = ID;
+       }
+       else {
+	 state = DONE;
+	 switch (c)
+           { case EOF:
+               currentToken.TokenClass = ENDFILE;
+               break;
+             case '+':
+               currentToken.TokenClass = PLUS;
+               break;
+             case '-':
+               currentToken.TokenClass = SUB;
+               break;
+             case '(':
+               currentToken.TokenClass = LPAREN;
+               break;
+             case ')':
+               currentToken.TokenClass = RPAREN;
+               break;
+             case '=':
+               currentToken.TokenClass = ASSIGN;
+               break;
+             case '$':
+               currentToken.TokenClass = OUT;
+               break;
+             case ';':
+               currentToken.TokenClass = SEMI;
+               break;
+             default:
+               currentToken.TokenClass = ERROR;
+               break;
+           }
+         }
+         break;
+       case INNUM:
+         if (!isdigit(c))
+         { /* backup in the input */
+           cin.putback(c);
+	   putback = true;
+           state = DONE;
+           currentToken.TokenClass = NUM;
+         }
+         break;
+       case DONE:
+       default: /* should never happen */
+         state = DONE;
+         currentToken.TokenClass = ERROR;
+         break;
+     }
+     if (! putback) // add c to the TokenString
+	 currentToken.TokenString += c;
+     if (state != DONE) 
+	 c = cin.get();
+   }
+   return currentToken;
+} /* end getToken */
+
+// --------------- parse.cc ------------------
+
+#include <stdlib.h>
+#include <iostream>
+#include "globals.h"
+
+/* Syntax Analyzer for the calculator language */
+
+static TokenType token; /* holds current token */
+
+/* Function newExpNode creates a new expression 
+ * node for syntax tree construction
+ */
+TreeNode * newNode(TokenType tType) {
+  TreeNode * t = new TreeNode();
+  // The above line is analogous to the C statement
+  // TreeNode * t = (TreeNode *) malloc(sizeof(TreeNode));
+
+  int i;
+  if (t==NULL) {
+    cerr << "Out of memory error at line %d\n";
+    exit(1);
+  }
+  else {
+    for (i=0;i < MAXCHILDREN;i++) t->child[i] = NULL;
+    t->op = tType.TokenClass;
+  }
+  return t;
+}
+
+static void advance(int expected) {
+  if (token.TokenClass == expected) token = getToken();
+  else {
+    cerr << "unexpected token -> " << token.TokenString << endl; 
+  }
+}
+
+TreeNode * exp(void); // forward declaration
+
+TreeNode * factor(void) {
+  TreeNode * t = NULL;
+  switch (token.TokenClass) {
+  case NUM :
+    t = newNode(token);
+    if ((t!=NULL) && (token.TokenClass==NUM))
+      t->val = atoi(token.TokenString.c_str());
+    advance(NUM);
+    break;
+  case ID :
+    t = newNode(token);
+    if ((t!=NULL) && (token.TokenClass==ID))
+      t->id = token.TokenString[0];
+    advance(ID);
+    break;
+  case LPAREN :
+    advance(LPAREN);
+    t = exp();
+    advance(RPAREN);
+    break;
+  default:
+    cerr << "unexpected token -> " << token.TokenString << endl;
+    exit(1);
+    break;
+  }
+  return t;
+}
+
+TreeNode * exp_prime(TreeNode * left) {
+  if ((token.TokenClass==PLUS) 
+      || (token.TokenClass==SUB)
+      ) {
+    TreeNode * p = newNode(token);
+    
+    advance(token.TokenClass);
+    if (p!=NULL) {
+      p->child[0] = left;
+      p->child[1] = factor();
+      return exp_prime(p);
+    }
+  }
+  else return left;
+}
+
+TreeNode * exp(void) { 
+  TreeNode * t = factor();
+  return exp_prime(t);
+}
+
+
+/****************************************/
+/* the primary function of the parser   */
+/****************************************/
+/* Function statements returns the newly 
+ * constructed syntax tree
+ */
+TreeNode * statements(void) { 
+  TreeNode *h = NULL, *t = NULL;
+
+  /* prime the token */
+  token = getToken();
+  
+  while (token.TokenClass != ENDFILE) {
+    TreeNode * p = newNode(token);
+    
+    /* create a linked list of statements */
+    if (h == NULL)  /* initially empty */
+      h = t = p;
+    else { /* generally non-empty */
+      t->child[1] = p;
+      t = p;
+    }
+    
+    if (token.TokenClass==OUT) {
+      advance(token.TokenClass);
+      p->child[0] = exp();
+    }
+    else if (token.TokenClass==ID) { /* assignment */
+      p->op = ASSIGN;
+      p->id = token.TokenString[0];
+      
+      advance(token.TokenClass);
+      if (token.TokenClass != ASSIGN) {
+	cerr << "Invalid assignment statement " 
+	     << p->id << " " << token.TokenString << endl;
+	exit(1);
+      }
+      advance(ASSIGN);
+      p->child[0] = exp();
+    }
+    else {
+      cerr << "non-lvalue assignment\n";
+      exit(1);
+    }
+    
+    if (token.TokenClass == SEMI) {
+      /* more statements */
+      token = getToken();
+    }
+    else if (token.TokenClass != ENDFILE) {
+      cerr << "unexpected end of statement: " << token.TokenString << "\n";
+      exit(1);
+    }
+  }
+  return h;
+}
+
+// --------------- analyze.cc ------------------
+
+#include <iostream>
+#include "globals.h"
+
+/* Semantic Analysis: checks for undefind variables */
+
+static bool ST[ST_SIZE] = {
+    false, false, false, false, false, false,
+    false, false, false, false, false, false,
+    false, false, false, false, false, false,
+    false, false, false, false, false, false,
+    false, false 
+};
+
+void analyzeExp(TreeNode* icode) {
+    /* look for all occurrences of undefined variables */
+    if (icode != NULL) {
+	if (icode -> op == ID && !ST[icode -> id - 'a']) {
+	    cerr << "undefined variable: " << icode->id << endl;
+	    exit(1);
+	}
+	for (int i = 0; i < MAXCHILDREN; i++)
+	    analyzeExp(icode -> child[i]);
+  }
+}
+
+void analyze(TreeNode* icode) {
+    /* analyze all the statements in the program */
+    while (icode != NULL) {
+	if (icode -> op == ASSIGN) { 
+	    ST[icode -> id - 'a'] = true;
+	}
+	analyzeExp(icode -> child[0]);
+	icode = icode -> child[1];
+    }
+}
+
+// --------------- codegen1.cc ------------------
+
+#include <iostream>
+#include "globals.h"
+
+/* Code Generation for IBM */
+
+static CodeType codeArray[CODESIZE];
+static int ICounter = 0;
+static int C_OFFSET = 997; // the *fixed* address assigned to variable 'a'
+static int tempAddr = 100;
+
+void emit(string code, OpCodeType ctype, 
+	  int operand1, int operand2, int operand3) {
+  codeArray[ICounter].opcode = code;
+  codeArray[ICounter].ctype = ctype;
+  codeArray[ICounter].rand1 = operand1;
+  codeArray[ICounter].rand2 = operand2;
+  codeArray[ICounter++].rand3 = operand3;
+}
+
+void codeGenExp(TreeNode* icode) {
+  /* register 0 for ac */
+  /* register 1 for ac1 */
+
+  if (icode != NULL) {
+    switch (icode -> op) {
+    case NUM: 
+      emit("LDC",RM,0,icode->val,0);
+      break;
+    case ID:
+      emit("LD",RM,0,icode -> id - 'a' + C_OFFSET,2);
+      break;
+    case PLUS:
+      codeGenExp(icode -> child[0]);
+      emit("ST",RM,0,tempAddr++,2);
+      codeGenExp(icode -> child[1]);
+      emit("LD",RM,1,--tempAddr,2);
+      emit("ADD",RO,0,1,0);
+      break;
+    case SUB:
+      codeGenExp(icode -> child[0]);
+      emit("ST",RM,0,tempAddr++,2);
+      codeGenExp(icode -> child[1]);
+      emit("LD",RM,1,--tempAddr,2);
+      emit("SUB",RO,0,1,0);
+      break;
+    default:
+      cerr << "code generation error" << endl;
+    }
+  }
+}
+
+void codeGenStmt(TreeNode* icode) {
+  /* register 0 for ac */
+  /* register 1 for ac1 */
+
+  while (icode != NULL) {
+    switch (icode -> op) {
+    case ASSIGN:
+      codeGenExp(icode -> child[0]);
+      emit("ST",RM,0,icode -> id - 'a' + C_OFFSET,2);
+      break;
+    case OUT:
+      codeGenExp(icode -> child[0]);
+      emit("OUT",RO,0,0,0);
+      break;
+    default:
+      cerr << "code generation error" << endl;
+    }
+    icode = icode -> child[1];
+  }
+}
+
+
+void printCode(void) {
+  for (int i = 0; i < ICounter; i++) {
+    cout << i << ": " 
+	 << codeArray[i].opcode << " "
+	 << codeArray[i].rand1 << ","
+	 << codeArray[i].rand2 
+	 << (codeArray[i].ctype == RO? "," : "(")
+	 << codeArray[i].rand3;
+    if (codeArray[i].ctype == RM) cout << ")";
+    cout << endl;
+  }
+}
+
+
+/* This version frees every register for every subexpression. 
+
+void codeGenExp(TreeNode* icode) {
+  // register 0 for ac 
+  // register 1 for ac1 
+
+  if (icode != NULL) {
+    switch (icode -> op) {
+    case NUM: 
+      emit("LDC",RM,0,icode->val,0);
+      emit("ST",RM,0,tempAddr++,2);
+      break;
+    case ID:
+      emit("LD",RM,0,icode -> id - 'a' + C_OFFSET,2);
+      emit("ST",RM,0,tempAddr++,2);
+      break;
+    case PLUS:
+      for (int i = 0; i < MAXCHILDREN; i++)
+	codeGenExp(icode -> child[i]);
+
+      emit("LD",RM,1,--tempAddr,2);
+      emit("LD",RM,0,--tempAddr,2);
+      emit("ADD",RO,0,0,1);
+      emit("ST",RM,0,tempAddr++,2);
+      break;
+    case SUB:
+      for (int i = 0; i < MAXCHILDREN; i++)
+	codeGenExp(icode -> child[i]);
+
+      emit("LD",RM,1,--tempAddr,2);
+      emit("LD",RM,0,--tempAddr,2);
+      emit("SUB",RO,0,0,1);
+      emit("ST",RM,0,tempAddr++,2);
+      break;
+    default:
+      cerr << "code generation error" << endl;
+    }
+  }
+}
+
+*/
+
+// --------------- makefile ------------------
+
+# A makefile associates names (aka targets) with usually complex
+# terminal commands. 
+#
+# Each command (or command sequence) begins with a target, which can
+# be any name that you choose, left justified. This is followed by, on
+# the same line, a list of file names or other targets called
+# dependencies. Then, in subsequent lines are the sequence of
+# commands, each prefixed by a tab.
+
+calculator: calculator.o scan.o parse.o analyze.o codegen1.o 
+	g++ -o calculator calculator.o scan.o parse.o analyze.o codegen1.o 
+
+scan.o: scan.cc globals.h
+	g++ -c -w scan.cc
+
+parse.o: parse.cc globals.h
+	g++ -c -w parse.cc
+
+analyze.o: analyze.cc globals.h
+	g++ -c -w analyze.cc
+
+codegen1.o: codegen1.cc globals.h
+	g++ -c -w codegen1.cc
+
+calculator.o: calculator.cc globals.h
+	g++ -c -w calculator.cc
+
+clean:
+	rm -f *.o calculator core
