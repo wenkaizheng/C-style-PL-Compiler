@@ -16,6 +16,7 @@ typedef enum {
 int back_wards_pos = 0;
 std::string key_word[10] = {"int", "void", "if", "else", "while", "return","<=",">=","!=","=="};
 int key_word_class[10]  = {INT,VOID,IF,ELSE,WHILE,RETURN,LESSTHAN,GREATHAN,NOTEQUAL,EQUAL};
+int key_word_class2[4] = {LESS,GREAT,ME,ASSIGN};
 bool check_key_word(TokenType* token) {
     for (int i = 0; i < 6; i++) {
         if (key_word[i] == token->TokenString) {
@@ -25,16 +26,16 @@ bool check_key_word(TokenType* token) {
     }
     return false;
 }
-int identifier(TokenType token){
+int identifier(TokenType token, bool single){
 
     if (token.TokenString.back() == '!'){
-        return key_word_class[8];
+        return single? key_word_class2[2]:key_word_class[8] ;
     }else if (token.TokenString.back() == '='){
-        return key_word_class[9];
+        return single? key_word_class2[3]:key_word_class[9];
     }else if (token.TokenString.back() == '>'){
-        return key_word_class[7];
+        return single? key_word_class2[1]:key_word_class[7];
     }else if (token.TokenString.back() == '<'){
-        return key_word_class[6];
+        return single? key_word_class2[0]: key_word_class[6];
     }
     return -1;
 }
@@ -169,18 +170,20 @@ TokenType getToken(void) {
                 break;
             case INOP:
                 // == != >= <=
+               // rc = identifier(currentToken);
+
                 if (c == '='){
-                    rc = identifier(currentToken);
-                    if (rc != -1){
-                        state = DONE;
-                        currentToken.TokenClass = rc;
-                    }
+                    rc = identifier(currentToken, false);
+                    state = DONE;
+                    currentToken.TokenClass = rc;
+
                 }
                 else{
+                    rc = identifier(currentToken, true);
                     cin.putback(c);
                     putback = true;
                     state = DONE;
-                    currentToken.TokenClass = ASSIGN;
+                    currentToken.TokenClass = rc;
                 }
 
                 break;

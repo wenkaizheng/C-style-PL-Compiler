@@ -36,6 +36,7 @@
 #define LESSTHAN 295
 #define NOTEQUAL 296
 #define EQUAL   297
+#define ME        298
 using namespace std;
 
 /* This is C-version of the TokenType class 
@@ -85,6 +86,7 @@ public:
 
 extern std::string key_word[10];
 extern int key_word_class[10];
+extern int key_word_class2[4];
 TokenType getToken(void);
 TreeNode * statements(void);
 void analyze(TreeNode*);
