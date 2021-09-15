@@ -181,14 +181,12 @@ TokenType getToken(void) {
         }
         if (!putback) // add c to the TokenString
             currentToken.TokenString += c;
-        if (check_key_word(&currentToken)){
-            state = DONE;
-        }
+
         if (state != DONE)
             c = cin.get();
     }
     // we need to check any keyword
-   // check_key_word(&currentToken);
+    check_key_word(&currentToken);
     return currentToken;
 } /* end getToken */
 
