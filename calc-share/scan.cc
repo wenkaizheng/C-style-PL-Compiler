@@ -10,7 +10,7 @@ using namespace std;
 
 /* states in the scanner DFA */
 typedef enum {
-    START, INNUM, DONE, INID
+    START, INNUM, DONE, INID, INOP
 } StateType;
 // if no more match can be found
 int back_wards_pos = 0;
@@ -72,7 +72,8 @@ TokenType getToken(void) {
             case START:
                 if (isdigit(c))
                     state = INNUM;
-                else if ('a' <= c && c <= 'z') {
+                //todo ask Pro Lu
+                else if (isalpha(c)) {
                     state = INID;
                     currentToken.TokenClass = ID;
                 } else {
@@ -96,18 +97,21 @@ TokenType getToken(void) {
                         // todo single maybe a error
                         case '!':
                             currentToken.TokenClass = NOT;
-                            check_next_equal(state);
+                            //check_next_equal(state);
+                            state = INOP;
                             break;
                         case '?':
                             currentToken.TokenClass = QUE;
                             break;
                         case '<':
                             currentToken.TokenClass = LESS;
-                            check_next_equal(state);
+                            //check_next_equal(state);
+                            state = INOP;
                             break;
                         case '>':
                             currentToken.TokenClass = GREAT;
-                            check_next_equal(state);
+                            //check_next_equal(state);
+                            state = INOP;
                             break;
                         case '(':
                             currentToken.TokenClass = LPAREN;
@@ -116,18 +120,8 @@ TokenType getToken(void) {
                             currentToken.TokenClass = RPAREN;
                             break;
                         case '=':
-                            // == case
-                            // >= <= != case
-                            // second  =
-                            rc = identifier(currentToken);
-                            if (rc != -1){
-                                currentToken.TokenClass = rc;
-                                state = DONE;
-                            }
-                            else {
-                                currentToken.TokenClass = ASSIGN;
-                                check_next_equal(state);
-                            }
+                            currentToken.TokenClass = ASSIGN;
+                            state = INOP;
                             break;
                         case '$':
                             currentToken.TokenClass = OUT;
@@ -165,13 +159,30 @@ TokenType getToken(void) {
                 }
                 break;
             case INID:
-                // if back is = ! or =
+                //stop if nor num and letter
                 if (!isdigit(c) and !isalpha(c) ){
                     cin.putback(c);
                     putback = true;
                     state = DONE;
                     currentToken.TokenClass = ID;
                 }
+                break;
+            case INOP:
+                // == != >= <=
+                if (c == '='){
+                    rc = identifier(currentToken);
+                    if (rc != -1){
+                        state = DONE;
+                        currentToken.TokenClass = rc;
+                    }
+                }
+                else{
+                    cin.putback(c);
+                    putback = true;
+                    state = DONE;
+                    currentToken.TokenClass = ASSIGN;
+                }
+
                 break;
             case DONE:
             default: /* should never happen */
