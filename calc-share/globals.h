@@ -84,8 +84,8 @@ public:
  * each of the phases of the compiler.
  */
 
-extern std::string key_word[10];
-extern int key_word_class[10];
+extern std::string key_word[6];
+extern int key_word_class[6];
 extern int key_word_class2[4];
 TokenType getToken(void);
 TreeNode * statements(void);

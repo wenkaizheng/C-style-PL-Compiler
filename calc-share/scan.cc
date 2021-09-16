@@ -10,13 +10,12 @@ using namespace std;
 
 /* states in the scanner DFA */
 typedef enum {
-    START, INNUM, DONE, INID, INOP
+    START, INNUM, DONE, INID, INLESS, INEUQAL,INNOTEQUAL,INGREAT
 } StateType;
 // if no more match can be found
 int back_wards_pos = 0;
-std::string key_word[10] = {"int", "void", "if", "else", "while", "return","<=",">=","!=","=="};
-int key_word_class[10]  = {INT,VOID,IF,ELSE,WHILE,RETURN,LESSTHAN,GREATHAN,NOTEQUAL,EQUAL};
-int key_word_class2[4] = {LESS,GREAT,ME,ASSIGN};
+std::string key_word[6] = {"int", "void", "if", "else", "while", "return"};
+int key_word_class[6]  = {INT,VOID,IF,ELSE,WHILE,RETURN};
 bool check_key_word(TokenType* token) {
     for (int i = 0; i < 6; i++) {
         if (key_word[i] == token->TokenString) {
@@ -25,29 +24,6 @@ bool check_key_word(TokenType* token) {
         }
     }
     return false;
-}
-int identifier(TokenType token, bool single){
-
-    if (token.TokenString.back() == '!'){
-        return single? key_word_class2[2]:key_word_class[8] ;
-    }else if (token.TokenString.back() == '='){
-        return single? key_word_class2[3]:key_word_class[9];
-    }else if (token.TokenString.back() == '>'){
-        return single? key_word_class2[1]:key_word_class[7];
-    }else if (token.TokenString.back() == '<'){
-        return single? key_word_class2[0]: key_word_class[6];
-    }
-    return -1;
-}
-bool check_next_equal(StateType& state){
-    char tmp  = cin.get();
-    if (tmp == '='){
-        state = START;
-    }
-    else{
-        state = DONE;
-    }
-    cin.putback(tmp);
 }
 bool LayOutCharacter(char c) {
     return ((c == ' ') || (c == '\t') || (c == '\n'));
@@ -99,7 +75,7 @@ TokenType getToken(void) {
                         case '!':
                             currentToken.TokenClass = NOT;
                             //check_next_equal(state);
-                            state = INOP;
+                            state = INNOTEQUAL;
                             break;
                         case '?':
                             currentToken.TokenClass = QUE;
@@ -107,12 +83,12 @@ TokenType getToken(void) {
                         case '<':
                             currentToken.TokenClass = LESS;
                             //check_next_equal(state);
-                            state = INOP;
+                            state = INLESS;
                             break;
                         case '>':
                             currentToken.TokenClass = GREAT;
                             //check_next_equal(state);
-                            state = INOP;
+                            state = INGREAT;
                             break;
                         case '(':
                             currentToken.TokenClass = LPAREN;
@@ -122,7 +98,7 @@ TokenType getToken(void) {
                             break;
                         case '=':
                             currentToken.TokenClass = ASSIGN;
-                            state = INOP;
+                            state = INEUQAL;
                             break;
                         case '$':
                             currentToken.TokenClass = OUT;
@@ -168,24 +144,65 @@ TokenType getToken(void) {
                     currentToken.TokenClass = ID;
                 }
                 break;
-            case INOP:
-                // == != >= <=
-               // rc = identifier(currentToken);
-
+            case INEUQAL:
+                // ==
                 if (c == '='){
-                    rc = identifier(currentToken, false);
                     state = DONE;
-                    currentToken.TokenClass = rc;
+                    currentToken.TokenClass = EQUAL;
 
                 }
+                // =
                 else{
-                    rc = identifier(currentToken, true);
                     cin.putback(c);
                     putback = true;
                     state = DONE;
-                    currentToken.TokenClass = rc;
+                    currentToken.TokenClass = ASSIGN;
                 }
+                break;
+            case INLESS:
+                // <=
+                if (c == '='){
+                    state = DONE;
+                    currentToken.TokenClass = LESSTHAN;
 
+                }
+                    // <
+                else{
+                    cin.putback(c);
+                    putback = true;
+                    state = DONE;
+                    currentToken.TokenClass = LESS;
+                }
+                break;
+            case INGREAT:
+                // >=
+                if (c == '='){
+                    state = DONE;
+                    currentToken.TokenClass = GREATHAN;
+
+                }
+                    // >
+                else{
+                    cin.putback(c);
+                    putback = true;
+                    state = DONE;
+                    currentToken.TokenClass = GREAT;
+                }
+                break;
+            case INNOTEQUAL:
+                // !=
+                if (c == '='){
+                    state = DONE;
+                    currentToken.TokenClass = NOTEQUAL;
+
+                }
+                    // !
+                else{
+                    cin.putback(c);
+                    putback = true;
+                    state = DONE;
+                    currentToken.TokenClass = ME;
+                }
                 break;
             case DONE:
             default: /* should never happen */
