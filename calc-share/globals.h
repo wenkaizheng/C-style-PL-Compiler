@@ -37,6 +37,7 @@
 #define NOTEQUAL 296
 #define EQUAL   297
 #define ME        298
+#define EMPTY    299
 using namespace std;
 
 /* This is C-version of the TokenType class 

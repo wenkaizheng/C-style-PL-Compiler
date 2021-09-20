@@ -10,9 +10,10 @@ using namespace std;
 
 /* states in the scanner DFA */
 typedef enum {
-    START, INNUM, DONE, INID, INLESS, INEUQAL,INNOTEQUAL,INGREAT
+    START, INNUM, DONE, INID, INLESS, INEUQAL,INNOTEQUAL,INGREAT, INCOMMENTS,INCOMMENT,INCOMMENTE
 } StateType;
 // if no more match can be found
+// if there is a /* but end
 int back_wards_pos = 0;
 std::string key_word[6] = {"int", "void", "if", "else", "while", "return"};
 int key_word_class[6]  = {INT,VOID,IF,ELSE,WHILE,RETURN};
@@ -70,8 +71,8 @@ TokenType getToken(void) {
                             break;
                         case '/':
                             currentToken.TokenClass = DIV;
+                            state = INCOMMENTS;
                             break;
-                        // todo single maybe a error
                         case '!':
                             currentToken.TokenClass = NOT;
                             //check_next_equal(state);
@@ -204,14 +205,56 @@ TokenType getToken(void) {
                     currentToken.TokenClass = ME;
                 }
                 break;
+            case INCOMMENTS:
+                // /*
+                if (c == '*'){
+                    state = INCOMMENT;
+                    currentToken.TokenClass = EMPTY;
+                }
+                else{
+                    cin.putback(c);
+                    putback = true;
+                    state = DONE;
+                    currentToken.TokenClass = DIV;
+                };
+                break;
+            // only for end *
+            case INCOMMENT:
+                if ( c == '*'){
+                    state = INCOMMENTE;
+                    currentToken.TokenClass = EMPTY;
+                }
+                //read whatever into token
+                break;
+            // */ for end of comment
+            case INCOMMENTE:
+                if ( c == '/'){
+                    state = START;
+                    // set to empty to express ignore
+                }else{
+                    if (c != '*') {
+                        state = INCOMMENT;
+                    }
+                }
+                break;
             case DONE:
             default: /* should never happen */
                 state = DONE;
                 currentToken.TokenClass = ERROR;
                 break;
         }
-        if (!putback) // add c to the TokenString
+        if (!putback ) { // add c to the TokenString
             currentToken.TokenString += c;
+            if (state == START){
+                currentToken.TokenString = "";
+               // return getToken();
+                do {
+                    c = cin.get();
+                } while (LayOutCharacter(c));
+                // because we read this char in line 255
+                cin.putback(c);
+            }
+        }
 
         if (state != DONE)
             c = cin.get();
