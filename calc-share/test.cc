@@ -1,15 +1,17 @@
 #include <iostream>
 #include "globals.h"
 
-int main(void) {
-    // Just for testing the tokenizer
 
-    TokenType t = getToken();
-    while (t.TokenClass != ENDFILE) {
-        cout << t.TokenClass << ":" << t.TokenString << endl;
-        t = getToken();
+int main(int argc, char* argv[]){
+
+
+    TreeNode * root = statements();
+    if(root == NULL){
+        printf("no declarations\n");
+    }else{
+        cout << "10th\n";
+        ast_string(root, 0);
+        free_memory(root);
     }
-    std::cout << "done\n";
-    exit(0);
+    return 0;
 }
-

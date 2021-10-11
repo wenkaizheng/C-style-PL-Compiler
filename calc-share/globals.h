@@ -26,6 +26,14 @@
 #define END     275
 #define LEFT    276
 #define RIGHT   277
+// op
+#define VDECLARE  278
+#define FDECLARE 279
+#define LVDECLARE   280
+#define FPARAMETER 281
+#define  BLOCK     282
+#define  VAR    283
+#define CFUNCTION 284
 #define INT     288
 #define VOID    289
 #define IF      290
@@ -38,6 +46,7 @@
 #define EQUAL   297
 #define ME        298
 #define EMPTY    299
+#define  BREAK   300
 using namespace std;
 
 /* This is C-version of the TokenType class 
@@ -55,14 +64,24 @@ public:
   string TokenString;
 };
 
-#define MAXCHILDREN 2
+#define MAXCHILDREN 3
 
 class TreeNode {
 public:
     TreeNode * child[MAXCHILDREN];
+    // for next statements
+    TreeNode* next;
     int  op;
     int  val;
-    char id;
+    string id;
+    // for access array only
+    int pos;
+    // for array size;
+    int size;
+    // true mean array
+    bool array;
+    // if type applied
+    int type;
 };
 
 #define ST_SIZE 26 // ST: Symbol Table
@@ -85,11 +104,15 @@ public:
  * each of the phases of the compiler.
  */
 
-extern std::string key_word[6];
-extern int key_word_class[6];
+extern std::string key_word[7];
+extern int key_word_class[7];
 extern int key_word_class2[4];
 TokenType getToken(void);
 TreeNode * statements(void);
+// print ast tree;
+void ast_string(TreeNode*,int);
+// free all memory from bst
+void free_memory(TreeNode* root);
 void analyze(TreeNode*);
 void codeGenStmt(TreeNode*);
 void emit(string,OpCodeType,int,int,int);

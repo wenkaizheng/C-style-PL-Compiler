@@ -7,12 +7,9 @@
 # dependencies. Then, in subsequent lines are the sequence of
 # commands, each prefixed by a tab.
 
-all: calculator
-
-calculator: calculator.o scan.o parse.o analyze.o codegen1.o test
-	g++ -o calculator calculator.o scan.o parse.o analyze.o codegen1.o
-test: test.o scan.o
-	g++ -o test test.o scan.o
+all: test
+test: test.o scan.o parse.o
+	g++ -o test test.o scan.o parse.o
 scan.o: scan.cc globals.h
 	g++ -c -w scan.cc
 
@@ -30,4 +27,4 @@ calculator.o: calculator.cc globals.h
 test.o: test.cc globals.h
 	g++ -c -w test.cc
 clean:
-	rm -f *.o calculator core test
+	rm -f *.o test

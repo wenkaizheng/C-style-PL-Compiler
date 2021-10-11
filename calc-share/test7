@@ -1,0 +1,32 @@
+/*
+// A Sample Program
+// This is a temperature conversion program.
+*/
+int result;
+
+int convert(int c, int a[]) {
+       int q;
+       int f;
+       if (f > b) {
+       		q[2*a+c/b] = a+b/c;
+		while(i != (x + 4 * 7 - 3)){
+			call(3, m[8], v + 5);
+			c = c + 5;
+			return x + 6 * c(8, x);
+			break;
+		}
+	}
+       else{q[c] = 100;}
+       f = c - 9/5 * 32;
+       ?;
+       ;
+$;
+       return f+d*u;
+}
+void main(void) {
+       int n;
+       n = ?;
+       result = n*convert(n);
+       $ result;
+}
+ 

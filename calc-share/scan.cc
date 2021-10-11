@@ -15,10 +15,10 @@ typedef enum {
 // if no more match can be found
 // if there is a /* but end
 int back_wards_pos = 0;
-std::string key_word[6] = {"int", "void", "if", "else", "while", "return"};
-int key_word_class[6]  = {INT,VOID,IF,ELSE,WHILE,RETURN};
+std::string key_word[7] = {"int", "void", "if", "else", "while", "return","break"};
+int key_word_class[7]  = {INT,VOID,IF,ELSE,WHILE,RETURN,BREAK};
 bool check_key_word(TokenType* token) {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         if (key_word[i] == token->TokenString) {
             token->TokenClass = key_word_class[i];
             return true;
