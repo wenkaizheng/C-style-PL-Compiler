@@ -74,7 +74,6 @@ void free_memory(TreeNode* root){
     }
 }
 void spaces(int num){
-   //cout << "58th\n";
     for(int i = 0; i< num; i++){
         cout << ' ';
     }
@@ -114,8 +113,8 @@ void ast_string(TreeNode* root, int space){
             cout << "\n";
             c = c->next;
         }
+        spaces(1+space);
         if (root->child[1]){
-            spaces(1+space);
             cout << "Local statements: "<< endl;
             ast_string(root->child[1],space +2);
         }else{
@@ -234,7 +233,6 @@ TreeNode *newNode(TokenType tType) {
         t->next = NULL;
         t->array = false;
         t->type = -1;
-        t->pos = -1;
         t->size = -1;
 
     }
@@ -242,7 +240,6 @@ TreeNode *newNode(TokenType tType) {
 }
 
 static void advance(int expected) {
-    cout << "225th " << token.TokenString << endl;
     if (token.TokenClass == expected) token = getToken();
     else {
         cerr << "unexpected token -> " << token.TokenString << endl;
@@ -323,16 +320,13 @@ TreeNode* construct_expression_helper() {
 
 }
 TreeNode* construct_expression() {
-    cout << "278th\n";
     if (token.TokenClass != SEMI) {
         TreeNode *rv = construct_expression_helper();
         if (token.TokenClass != SEMI) {
-            cout << token.TokenClass << endl;
             cerr << "error[missing a ; at the expression end]" << endl;
             exit(1);
         }
         advance(token.TokenClass);
-        cout << "322th\n";
         return rv;
     } else {
         advance(token.TokenClass);
@@ -342,8 +336,6 @@ TreeNode* construct_expression() {
 
 TreeNode *factor() {
     TreeNode* rv = newNode(token);
-    cout << token.TokenClass << endl;
-    cout << token.TokenString << endl;
     // expression with ()
     if (token.TokenClass == LPAREN){
         delete rv;
@@ -361,7 +353,6 @@ TreeNode *factor() {
         advance(token.TokenClass);
         rv = construct_id(rv);
     }else{
-        cout << token.TokenClass << "\n";
         cerr << "error[factor element is not valid]" << endl;
         exit(1);
     }
@@ -374,14 +365,12 @@ TreeNode *exp_prime(TreeNode *left) {
             ) {
         TreeNode *p = newNode(token);
         advance(token.TokenClass);
-        cout << "357th\n";
         if (p != NULL) {
             p->child[0] = left;
             p->child[1] = arith_term();
             return exp_prime(p);
         }
     } else {
-        cout << "364th\n";
         return left;
     }
 }
@@ -392,23 +381,19 @@ TreeNode *term_prime(TreeNode *left) {
             ) {
         TreeNode *p = newNode(token);
         advance(token.TokenClass);
-        cout << "374th\n";
         if (p != NULL) {
             p->child[0] = left;
             p->child[1] = factor();
             return term_prime(p);
         }
     } else {
-        cout << "381th\n";
         return left;
     }
 }
 
 //arith-term → arith-factor | arith-term mulop arith-factor
 TreeNode* arith_term(){
-   // cout << "377th\n";
     TreeNode* t = factor();
-   // cout << "378th\n";
     return term_prime(t);
 }
 // arith-expr → arith-term | arith-expr addop arith-term
@@ -432,7 +417,6 @@ TreeNode* construct_comparison(){
         if (token.TokenClass == LESS || token.TokenClass == LESSTHAN
     || token.TokenClass == GREAT || token.TokenClass == GREATHAN ||
     token.TokenClass == EQUAL || token.TokenClass == NOTEQUAL){
-            cout << "418th\n";
             rv = newNode(token);
             advance(token.TokenClass);
             rv->child[0] = t;
@@ -449,13 +433,10 @@ TreeNode* construct_if(){
     advance(token.TokenClass);
     // to see if there is a (
     advance(LPAREN);
-    cout << "434th\n";
     rv->child[0] = construct_comparison();
-    cout << "435th\n";
     advance(RPAREN);
     rv->child[1] = construct_one_statement();
     // more statement
-    cout << "438th\n";
     if (token.TokenClass == ELSE){
         advance(token.TokenClass);
         rv->child[2] = construct_one_statement();
@@ -530,7 +511,7 @@ TreeNode* construct_statements(){
         }
     }
     if(token.TokenClass == ENDFILE){
-        cerr << "lack } in function block.\n" << endl;
+        cerr << "error[missing } in function block]" << endl;
         exit(1);
     }
     return h;
@@ -652,7 +633,7 @@ TreeNode* construct_parameters(){
  * constructed syntax tree
  */
 // global var/array and function declaration
-TreeNode *statements(void) {
+TreeNode *construct_declarations(void) {
     TreeNode *h = NULL, *t = NULL;
 
     /* prime the token */
@@ -699,7 +680,7 @@ TreeNode *statements(void) {
                            exit(1);
                        }
                    }else{
-                       cerr << "error [ the size of global array should be a number ]" << endl;
+                       cerr << "error[ the size of global array should be a number ]" << endl;
                        exit(1);
                    }
                }
@@ -716,7 +697,7 @@ TreeNode *statements(void) {
                         // }
                         advance(END);
                     }else{
-                        cerr << "error[missing a } for block" << endl;
+                        cerr << "error[missing a { for block" << endl;
                         exit(1);
                     }
                }else if (token.TokenClass == SEMI){

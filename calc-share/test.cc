@@ -5,11 +5,10 @@
 int main(int argc, char* argv[]){
 
 
-    TreeNode * root = statements();
+    TreeNode * root = construct_declarations();
     if(root == NULL){
         printf("no declarations\n");
     }else{
-        cout << "10th\n";
         ast_string(root, 0);
         free_memory(root);
     }

@@ -69,13 +69,11 @@ public:
 class TreeNode {
 public:
     TreeNode * child[MAXCHILDREN];
-    // for next statements
+    // for next statements,func->parameters,arguments,local variable.
     TreeNode* next;
     int  op;
     int  val;
     string id;
-    // for access array only
-    int pos;
     // for array size;
     int size;
     // true mean array
@@ -108,7 +106,7 @@ extern std::string key_word[7];
 extern int key_word_class[7];
 extern int key_word_class2[4];
 TokenType getToken(void);
-TreeNode * statements(void);
+TreeNode * construct_declarations(void);
 // print ast tree;
 void ast_string(TreeNode*,int);
 // free all memory from bst
