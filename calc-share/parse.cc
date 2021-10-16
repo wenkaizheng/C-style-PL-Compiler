@@ -243,6 +243,7 @@ static void advance(int expected) {
     if (token.TokenClass == expected) token = getToken();
     else {
         cerr << "unexpected token -> " << token.TokenString << endl;
+        exit(1);
     }
 }
 TreeNode* construct_argument(){
