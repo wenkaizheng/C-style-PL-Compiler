@@ -4,34 +4,29 @@ To compile:
 
 For a clean start, type 'make clean' followed by 'make'.
 
-To run the compiler:
+I changed the file parse.cc and globals.h, and add a file test.cc which include main function for testing, and I also add test.cc to Makefile.
 
-   ./calculator
+For testing and printing the AST, please tried this.
+./test < test_input_file
 
-then enter a sequence of statements (assignments or output). Here is
-an example:
+The following important modified grammars will be implemented:
 
-   x = 2 + 3;
-   $ x + x;
-   y = x;
-   $ y - 1;
+Declarations -> Declaration Declarations'
+Declarations' -> Declaration Declarations' | empty string
 
-Terminate the input with 'Ctrl-D'. This will print the output on the
-terminal.
+Parameters -> Parameter Parameters'
+Parameters' -> ,Parameter, Parameters' | empty string
 
-You may also redirect input and output in the usual way. If you
-already have an input file (say 'test_input') with a combination of
-assignment and output statements, and if you want the compiled code to
-be saved to a file called 'test_output.ibm':
+Local-Vars -> Var-Declaration Local-Vars | empty string
 
-   ./calculator < test_input > test_output.ibm
+Statements -> Statement Statements | empty string
 
-To test the output program:
+Arith-Expr -> Arith-Term Arith-Expr'
+Arith-Expr' -> Addop Arith-Term Arith-Expr' | empty string
 
-   make ibm
-   ./ibm test_output.ibm
+Arith-Term -> Arith-Factor Arith-Term'
+Arith-Term' -> Mulop Arith-Factor Arith-Term' | empty string
 
-This will load the assembly program 'test_output.ibm'. To run the
-program, type 'g' while inside the ibm simulator. Type 'h' to see the
-list of commands that the simulator recognizes.
 
+Arguments -> Argument Arguments'
+Arguments' -> ,Argument Arguments' | empty string
