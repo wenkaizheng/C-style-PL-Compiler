@@ -4,7 +4,7 @@ To compile:
 
 For a clean start, type 'make clean' followed by 'make'.
 
-I changed the file parse.cc and globals.h, and add a file test.cc which include main function for testing, and I also add test.cc to Makefile.
+I changed the file parse.cc, scan.cc and globals.h, and add a file test.cc which include main function for testing, and I also add test.cc to Makefile.
 
 For testing and printing the AST, please tried this.
 ./test < test_input_file
