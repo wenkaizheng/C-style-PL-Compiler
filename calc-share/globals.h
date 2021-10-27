@@ -1,5 +1,5 @@
 #include <stdlib.h>
-
+#include <map>
 #ifndef _GLOBALS_H
 #define _GLOBALS_H
 
@@ -81,7 +81,30 @@ public:
     // if type applied
     int type;
 };
+class parameter{
+public:
+    parameter* next;
+    int type;
+    string id;
+    bool array;
+};
+class symbol{
+public:
+    int declare_type;
+    int type;
+    bool array;
+    int size;
+    parameter* parameters;
 
+};
+class symbol_table{
+public:
+    map<string,symbol*> coll;
+    symbol_table* children;
+    symbol_table* parent;
+    symbol_table* next;
+    string scope;
+};
 #define ST_SIZE 26 // ST: Symbol Table
 
 #define CODESIZE 100
@@ -106,12 +129,16 @@ extern std::string key_word[7];
 extern int key_word_class[7];
 extern int key_word_class2[4];
 TokenType getToken(void);
+void spaces(int num);
 TreeNode * construct_declarations(void);
 // print ast tree;
 void ast_string(TreeNode*,int);
 // free all memory from bst
-void free_memory(TreeNode* root);
-void analyze(TreeNode*);
+void free_memory(TreeNode*);
+symbol_table* analyze(TreeNode*);
+void st_string(symbol_table*,int);
+void free_memory(symbol_table* );
+void free_collector();
 void codeGenStmt(TreeNode*);
 void emit(string,OpCodeType,int,int,int);
 void printCode(void);

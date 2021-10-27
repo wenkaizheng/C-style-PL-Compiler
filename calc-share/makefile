@@ -8,8 +8,8 @@
 # commands, each prefixed by a tab.
 
 all: test
-test: test.o scan.o parse.o
-	g++ -o test test.o scan.o parse.o
+test: test.o scan.o parse.o analyze.o
+	g++ -o test test.o scan.o parse.o analyze.o
 scan.o: scan.cc globals.h
 	g++ -c -w scan.cc
 
