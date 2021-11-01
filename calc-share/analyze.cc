@@ -43,7 +43,6 @@ void free_memory(symbol_table* st){
            //cout << "41th"  << prev_children->scope << "\n";
            free_memory(prev_children);
        }
-       cout << "46th " << copy->scope << endl;
        delete copy;
 
    }
@@ -58,11 +57,9 @@ void st_string(symbol_table* st, int space){
 
     if(st->scope == "Global"){
         if (st->children){
-            cout << "22th\n";
             st_string(st->children,space);
         }
         if (st->next){
-            cout << "26th\n";
             st_string(st->next,space);
         }
     }
@@ -97,7 +94,7 @@ void st_string(symbol_table* st, int space){
                 spaces(space);
                 cout << string_vals(s->type) << " " << it->first;
                 if(s->array){
-                    spaces(space);
+                   // spaces(space);
                     cout << "[" << s->size << "]";
                 }
                 cout <<"\n";
@@ -134,7 +131,6 @@ symbol* find_symbol_functions(symbol_table* cur,string target){
     return NULL;
 }
 symbol* find_symbol_variable(symbol_table* cur,string target){
-    cout << "91th\n";
     symbol_table* prev = NULL;
     while(1){
         if (cur->coll.find(target) == cur->coll.end()){
@@ -143,14 +139,25 @@ symbol* find_symbol_variable(symbol_table* cur,string target){
                 break;
             }else{
                 // check the global variable and make a record
-                // my global include the parameter list, so we check the parameter outer of loop
+                // my global include the parameter list, so we check the parameter and check global next round
                 if (cur->scope == "Global"){
-                    prev = cur;
+                    parameter* p = cur->coll[function_name]->parameters;
+                    while(p){
+                        if (p->id == target){
+                            // find it
+                            symbol* rv = new symbol();
+                            // rv->parameters = prev->coll[function_name]->parameters;
+                            rv->array = p->array;
+                            rv->type = p->type;
+                            collector.push_back(rv);
+                            return rv;
+                        }
+                        p = p->next;
+                    }
                 }
             }
         }else{
-            cout << "44th\n";
-            cout << cur->coll.find(target)->second->declare_type << endl;
+            // if it is a FDECLARE which means we have already includes global scope;
             if (cur->coll.find(target)->second->declare_type == VDECLARE
             || cur->coll.find(target)->second->declare_type == LVDECLARE) {
                 return cur->coll[target];
@@ -161,102 +168,62 @@ symbol* find_symbol_variable(symbol_table* cur,string target){
             }
         }
     }
-    // check the parameter list of this function
-    /**
-    if (!prev){
-        cout << "119th\n";
-        return NULL;
-    }
-     **/
-    cout << function_name << endl;
-    parameter* p = prev->coll[function_name]->parameters;
-    while(p){
-        cout << "59th\n";
-        cout << p->id << endl;
-        cout << target << endl;
-        if (p->id == target){
-            // find it
-            cout << "found it in 62th\n";
-            symbol* rv = new symbol();
-            // rv->parameters = prev->coll[function_name]->parameters;
-            rv->array = p->array;
-            rv->type = p->type;
-            collector.push_back(rv);
-            return rv;
-        }
-        p = p->next;
-    }
-    cout << "138th\n";
     return NULL;
 }
 int analyze_expression(TreeNode* icode, symbol_table* cur){
     if(icode->op == VAR){
-        cout << "65th\n";
         symbol* s = find_symbol_variable(cur,icode->id);
-        cout << "67th\n";
         if (!s){
             cerr << "[error " << icode->id << " is undeclared]" << endl;
             exit(1);
         }
         if (icode->array != s->array){
-            cout << icode->array << endl;
-            cout << s->array << endl;
-           //if(!function_call){
-                cerr << "[error " << icode->id << " is undeclared (array and not array)" << endl;
-                exit(1);
-            //}
+            cerr << "[error unexpected type error " << icode->id << " ]" <<endl;
+            exit(1);
         }
         if (s->array){
-            // check the index is interger
-            cout << "103th\n";
-            cout << icode->id << endl;
-            // todo has expression or not
+            // has expression or not
             if (icode->child[0]){
                 if(analyze_expression(icode->child[0],cur)!=INT){
                     cerr << "[error index is not int type]" << endl;
                     exit(1);
                 }
             }
-            cout << "108th\n";
         }
         // have to be int
-        cout << s->type << endl;
         return s->type;
     }else if (icode->op == PLUS || icode->op == SUB || icode->op == TIMES || icode->op == DIV){
         int rv1 = analyze_expression(icode->child[0],cur);
         int rv2 = analyze_expression(icode->child[1],cur);
-        if (rv1 != rv2){
-            cerr <<  "[error +-*/ with different types]" <<endl;
+        if (rv1 == VOID || rv2 == VOID){
+            cerr <<  "[error +-*/ with void type]" <<endl;
             exit(1);
         }
         return INT;
     }else if (icode->op == ASSIGN){
-        cout << "108th\n";
+        // function call can't be use a int
         if (icode->child[0]->op != VAR){
             cerr << "[error expression can not be assigned]" << endl;
             exit(1);
         }
         int rv1 = analyze_expression(icode->child[0],cur);
         int rv2 = analyze_expression(icode->child[1],cur);
-        if (rv1 != rv2){
-            cerr <<  "[error var can not be assigned by different types]" <<endl;
+        if (rv1 == VOID || rv2 == VOID){
+            cerr <<  "[error var can not be assigned by void type]" <<endl;
             exit(1);
         }
         return rv1;
     }else if (icode->op == CFUNCTION){
-        cout << "125th\n";
         symbol * s0 = find_symbol_variable(cur,icode->id);
         if (s0){
             cerr << "error[ "<< icode->id << " is a variable instead of a function]" << endl;
             exit(1);
         }
-//        function_call = true;
         symbol * s = find_symbol_functions(cur,icode->id);
         if (!s){
             cerr << "[error " << icode->id << " is undeclared]" << endl;
             exit(1);
         }
-        cout << "129th" << icode->op << endl;
         TreeNode* root = icode->child[0];
         parameter* p = s->parameters;
         // call(a) and p(void)
@@ -266,15 +233,12 @@ int analyze_expression(TreeNode* icode, symbol_table* cur){
         }
         while(root && p){
             if (p->array){
-                cout << "136th\n";
-                cout << root->op << endl;
                 if(root->op == VAR){
                     // indexing will be an int but you need an array
                     if (root->child[0]){
                         cerr << "[error unexpected type error " << root->id << "[] ]" <<endl;
                         exit(1);
                     }
-                    cout << root->id << endl;
                     // if it is not found or not an array
                     symbol* s1 = find_symbol_variable(cur,root->id);
                     if (! s1){
@@ -293,24 +257,11 @@ int analyze_expression(TreeNode* icode, symbol_table* cur){
             }else{
                 // int can be an expression
                 // using a void as return value, but you need an int
-                cout << "253th\n";
                 int rv = analyze_expression(root,cur);
                 if (rv != p->type){
                     cerr << "[error unexpected type error " << root->id << " ]" <<endl;
                     exit(1);
                 }
-                // since rv return so it must exist we check whether it is a int
-                /**
-                cout << "178th\n";
-                if(root->op == VAR) {
-                    symbol *s1 = find_symbol_variable(cur, root->id);
-                    // if not indexing for an array, but you need an int
-                    if (s1->array && !root->child[0]) {
-                        cerr << "[error unexpected type error " << root->id << " ]" << endl;
-                        exit(1);
-                    }
-                }
-                 **/
             }
             p = p->next;
             root = root->next;
@@ -321,14 +272,13 @@ int analyze_expression(TreeNode* icode, symbol_table* cur){
             //call() and function is void
             if (root == NULL){
                 // no argument
-                if (p->id == ""){
+                if (p->type == VOID){
                     return s->type;
                 }
             }
             cerr << "[error number of argument is incorrect]" << endl;
             exit(1);
         }
-        //function_call = false;
         return s->type;
 
     }
@@ -341,8 +291,12 @@ void analyze_comparison(TreeNode* icode, symbol_table* cur){
     if (icode->op == LESS || icode->op == LESSTHAN
        || icode->op == GREAT || icode->op == GREATHAN
        || icode->op == EQUAL || icode->op == NOTEQUAL){
-        analyze_expression(icode->child[0],cur);
-        analyze_expression(icode->child[1],cur);
+        int rv1 = analyze_expression(icode->child[0],cur);
+        int rv2 = analyze_expression(icode->child[1],cur);
+        if (rv1 == VOID || rv2 == VOID){
+            cerr << "[error you can not compare void type]" << endl;
+            exit(1);
+        }
     }else if (icode->op == ME){
         analyze_comparison(icode->child[0],cur);
     }
@@ -351,7 +305,6 @@ void analyze_statement(TreeNode* icode, symbol_table* cur, string id){
    if (icode->op == WHILE){
         // search for break
         // 77 is magic number since var can not be 77
-        cout << "while\n";
         cur->coll.insert(make_pair("77",new symbol()));
         analyze_comparison(icode->child[0],cur);
         if (icode->child[1]){
@@ -360,7 +313,6 @@ void analyze_statement(TreeNode* icode, symbol_table* cur, string id){
         delete cur->coll["77"];
         cur->coll.erase("77");
    }else if (icode->op == IF){
-       cout << "IF\n";
        analyze_comparison(icode->child[0],cur);
        if (icode->child[1]){
            analyze_statement(icode->child[1],cur,id + " if-statement");
@@ -394,16 +346,13 @@ void analyze_statement(TreeNode* icode, symbol_table* cur, string id){
            }
        }
    }else {
-       cout << "expression\n";
        analyze_expression(icode,cur);
    }
 }
 symbol_table* analyze_block(TreeNode* icode, symbol_table* parent, string id,int op){
-    cout << "201th\n";
     symbol_table * st = new symbol_table();
     st->scope = id;
     parameter* p = NULL;
-  // if (op != FDECLARE){
     st->parent = parent;
     if (op == FDECLARE){
          p = parent->coll[id]->parameters;
@@ -424,7 +373,8 @@ symbol_table* analyze_block(TreeNode* icode, symbol_table* parent, string id,int
                 }
                 p = p->next;
             }
-             p = parent->coll[id]->parameters;
+            // back to head since you need to check next var with parameter
+            p = parent->coll[id]->parameters;
         }
         if (st->coll.find(root->id) != st->coll.end()){
                 cerr << "error [redefinitions " + root->id  +"]" << endl;
@@ -443,11 +393,9 @@ symbol_table* analyze_block(TreeNode* icode, symbol_table* parent, string id,int
 
         root = root->next;
     }
-    cout << "240th\n";
     root = icode->child[1];
     while(root){
         analyze_statement(root,st,st->scope);
-        cout << "245th\n";
         root = root->next;
     }
     return st;
@@ -456,7 +404,6 @@ void analyze_parameter(TreeNode* icode, symbol* s){
     map<string,parameter*> check;
     parameter *h = NULL, *t = NULL;
     while(icode){
-        cout << "278th\n";
         if (icode->id != "" && icode->type == VOID){
             cerr << "error [" + icode->id  + " is void type]" << endl;
             exit(1);
