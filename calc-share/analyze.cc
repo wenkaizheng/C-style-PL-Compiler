@@ -68,15 +68,14 @@ void st_string(symbol_table* st, int space){
     for(auto it = st->coll.begin();it != st->coll.end();it++){
         symbol* s = it->second;
         if(s->declare_type == FDECLARE){
-            spaces(space);
-            cout << "function type " << string_vals(s->type) << endl;
-            spaces(space);
-            cout << "body of " << it->first << endl;
-            spaces(space);
+            spaces(space+1);
+            cout << "function type is " << string_vals(s->type);
+            cout << " || name is " << it->first;
+            cout << " || parameter of " << it->first;
             cout << "(";
             parameter* p = s->parameters;
             while(p){
-                spaces(space);
+                spaces(space+1);
                 cout << string_vals(p->type) << " ";
                 if (p->id != ""){
                     cout << p->id;
@@ -91,7 +90,7 @@ void st_string(symbol_table* st, int space){
             }
             cout << ")" << endl;
         }else if (s->declare_type == VDECLARE || s->declare_type == LVDECLARE){
-                spaces(space);
+                spaces(space+1);
                 cout << string_vals(s->type) << " " << it->first;
                 if(s->array){
                    // spaces(space);
