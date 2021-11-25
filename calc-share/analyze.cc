@@ -303,14 +303,10 @@ void analyze_comparison(TreeNode* icode, symbol_table* cur){
 void analyze_statement(TreeNode* icode, symbol_table* cur, string id){
    if (icode->op == WHILE){
         // search for break
-        // 77 is magic number since var can not be 77
-        cur->coll.insert(make_pair("77",new symbol()));
         analyze_comparison(icode->child[0],cur);
         if (icode->child[1]){
             analyze_statement(icode->child[1],cur,id + " while-statement");
         }
-        delete cur->coll["77"];
-        cur->coll.erase("77");
    }else if (icode->op == IF){
        analyze_comparison(icode->child[0],cur);
        if (icode->child[1]){
@@ -330,17 +326,18 @@ void analyze_statement(TreeNode* icode, symbol_table* cur, string id){
            walker->next = analyze_block(icode,cur,id,BLOCK);
        }
    }else if (icode->op == BREAK){
-       if (find_symbol_variable(cur,"77") == NULL){
-           cerr << "error [break must appear in while statement]" << endl;
+
+   }else if (icode->op == RETURN || icode->op ==OUT){
+       if (icode -> op == RETURN && icode->child[0] == NULL && function_type == INT){
+           cerr << "error [without return type]" << endl;
            exit(1);
        }
-   }else if (icode->op == RETURN || icode->op ==OUT){
-
        if (icode->child[0]){
            if (icode -> op == RETURN && function_type == VOID){
                cerr << "error [return the wrong type]" << endl;
                exit(1);
-           }else {
+           }
+           else {
                analyze_expression(icode->child[0], cur);
            }
        }
