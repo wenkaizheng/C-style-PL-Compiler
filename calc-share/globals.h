@@ -47,6 +47,15 @@
 #define ME        298
 #define EMPTY    299
 #define  BREAK   300
+// register and sp, fp, gp
+#define SP 4
+#define FP 5
+#define GP 6 /* global data pointer */
+#define PC 7
+#define R0 0
+#define R1 1
+#define ZERO 3
+#define R2 2
 using namespace std;
 
 /* This is C-version of the TokenType class 
@@ -80,6 +89,12 @@ public:
     bool array;
     // if type applied
     int type;
+    // tail recursion
+    bool tail_recursion;
+    // weight
+    int weight;
+    // bool from left or right
+    bool left;
 };
 class parameter{
 public:
@@ -87,6 +102,8 @@ public:
     int type;
     string id;
     bool array;
+    int offset;
+
 };
 class symbol{
 public:
@@ -94,6 +111,10 @@ public:
     int type;
     bool array;
     int size;
+    int offset;
+    int start;
+    int call;
+    int number_parameters;
     parameter* parameters;
 
 };
@@ -104,10 +125,11 @@ public:
     symbol_table* parent;
     symbol_table* next;
     string scope;
+    int offset;
 };
 #define ST_SIZE 26 // ST: Symbol Table
 
-#define CODESIZE 100
+#define CODESIZE 1024
 
 typedef enum {RO,RM} OpCodeType;
 
@@ -127,7 +149,6 @@ public:
 
 extern std::string key_word[7];
 extern int key_word_class[7];
-extern int key_word_class2[4];
 TokenType getToken(void);
 void spaces(int num);
 TreeNode * construct_declarations(void);
@@ -139,8 +160,8 @@ symbol_table* analyze(TreeNode*);
 void st_string(symbol_table*,int);
 void free_memory(symbol_table* );
 void free_collector();
-void codeGenStmt(TreeNode*);
-void emit(string,OpCodeType,int,int,int);
-void printCode(void);
+void code_generation(TreeNode*,symbol_table*);
+void emit(string,OpCodeType,int,int,int,int);
+void print_code(void);
 
 #endif

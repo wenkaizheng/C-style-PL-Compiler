@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <iostream>
+#include <vector>
 #include "globals.h"
 
 /* Syntax Analyzer for the calculator language */
 
 static TokenType token; /* holds current token */
+void set_weight(TreeNode*);
 string string_val(int);
 void spaces(int);
 TreeNode* construct_block();
@@ -24,7 +26,10 @@ TreeNode *exp_prime(TreeNode*);
 TreeNode *term_prime(TreeNode*);
 TreeNode* arith_term();
 TreeNode* arith_expr();
-
+string function_names = "";
+bool while_tail_recur = false;
+bool return_ocur = false;
+vector<string> tail_recur_function;
 string string_val(int v){
     if (v == VOID){
         return "void";
@@ -117,6 +122,11 @@ void ast_string(TreeNode* root, int space){
         if (root->child[1]){
             cout << "Local statements: "<< endl;
             ast_string(root->child[1],space +2);
+            if (root->child[1]->tail_recursion && while_tail_recur && !return_ocur){
+                 root->child[1]->tail_recursion = false;
+                cout << "This is not a tail recursion\n";
+            }
+            return_ocur = false;
         }else{
             cout << "Local statements: "<< endl;
         }
@@ -129,6 +139,7 @@ void ast_string(TreeNode* root, int space){
         cout << "\n";
     }
     else if (root->op == FDECLARE){
+        function_names = root->id;
         cout << "Global function declaration: " << root->id << " " << "(type: "  << string_val(root->type)  << ")\n";
         // print parameter list
         TreeNode* c = root->child[0];
@@ -154,7 +165,9 @@ void ast_string(TreeNode* root, int space){
         if (root->child[1]){
             spaces(space+1);
             cout << "while code" << endl;
+            while_tail_recur = true;
             ast_string(root->child[1],space+2);
+            while_tail_recur = false;
         }
     }
     else if (root->op == IF){
@@ -184,6 +197,7 @@ void ast_string(TreeNode* root, int space){
     else if (root->op == RETURN){
         spaces(space);
         cout << "Return" << endl;
+        return_ocur = true;
         if (root->child[0]){
             ast_string(root->child[0],space+1);
         }
@@ -200,13 +214,27 @@ void ast_string(TreeNode* root, int space){
         if (root->child[0]){
             ast_string(root->child[0],2 + space);
         }
+        if (!root->next && function_names == root->id){
+            cout << "This is a tail recursion\n";
+           root->tail_recursion = true;
+        }
     }else{
         // all  + - * / = >= <= < > ! !=
         spaces(space);
         cout << "Op: "<< string_val(root->op) << endl;
+        spaces(space);
+        cout << "left first " << root->left  << endl;
+        spaces(space);
+        cout << "Weight:" << root->weight << endl;
         for(int i = 0;i<MAXCHILDREN;i++){
             if (root->child[i]){
+                spaces(space);
+                cout << "child " << i << endl;
                 ast_string(root->child[i],space+1);
+                if (root->child[i]->tail_recursion){
+                    root->child[i]->tail_recursion = false;
+                    cout << "This is not a tail recursion\n";
+                }
             }
         }
     }
@@ -232,9 +260,11 @@ TreeNode *newNode(TokenType tType) {
         t->op = tType.TokenClass;
         t->next = NULL;
         t->array = false;
+        t->tail_recursion = false;
         t->type = -1;
         t->size = -1;
-
+        t->weight = 0;
+        t->left = true;
     }
     return t;
 }
@@ -272,6 +302,7 @@ TreeNode* construct_argument(){
 
 TreeNode* construct_id(TreeNode* left){
     // function call or array or var
+    set_weight(left);
     left->op = VAR;
     if (token.TokenClass == LPAREN){
         left->op = CFUNCTION;
@@ -292,7 +323,24 @@ TreeNode* construct_id(TreeNode* left){
     }
     return left;
 }
-
+void set_weight(TreeNode* t){
+    if (!t){
+        return;
+    }else if (!t->child[0] && !t->child[1]){
+        t->weight = 1;
+    }else if (t->child[0] && !t->child[1]){
+        t->weight = t->child[0]->weight;
+    }else if (t->op == SUB || t->op == DIV){
+        t->weight = t->child[0]->weight > t->child[1]->weight+1 ? t->child[0]->weight:t->child[1]->weight+1;
+    }else{
+        int left_weight = t->child[0]->weight > t->child[1]->weight+1 ? t->child[0]->weight:t->child[1]->weight+1;
+        int right_weight = t->child[0]->weight+1 > t->child[1]->weight ? t->child[0]->weight+1:t->child[1]->weight;
+        t->weight = left_weight < right_weight ? left_weight : right_weight;
+        //cout << left_weight << " " << right_weight << endl;
+        //cout << t->child[0]->id << " " << t->child[1]->id << endl;
+        t->left = left_weight < right_weight;
+    }
+}
 TreeNode* construct_expression_helper() {
     TreeNode* rv = NULL;
     if (token.TokenClass == ID){
@@ -300,23 +348,31 @@ TreeNode* construct_expression_helper() {
         t->id = token.TokenString;
         advance(token.TokenClass);
         TreeNode* tmp = construct_id(t);
+        set_weight(tmp);
         //return var_op(tmp);
         TreeNode* rv = NULL;
         if (token.TokenClass == PLUS || token.TokenClass == SUB){
-            return  exp_prime(tmp);
+            TreeNode* rv1 =  exp_prime(tmp);
+            set_weight(rv1);
+            return rv1;
         }else if (token.TokenClass == TIMES || token.TokenClass == DIV){
-            return  exp_prime(term_prime(tmp));
+            TreeNode* rv2 =  exp_prime(term_prime(tmp));
+            set_weight(rv2);
+            return rv2;
         }else if(token.TokenClass == ASSIGN){
             rv = newNode(token);
             advance(token.TokenClass);
             rv->child[0] = tmp;
             rv->child[1] = construct_expression_helper();
+           // set_weight(rv->child[1]);
+            set_weight(rv);
             return rv;
         }
         return tmp;
     }else{
         rv = arith_expr();
     }
+    set_weight(rv);
     return rv;
 
 }
@@ -345,6 +401,7 @@ TreeNode *factor() {
         advance(RPAREN);
     }else if (token.TokenClass == NUM){
         rv->val = stoi(token.TokenString);
+        rv->weight = 1;
         advance(token.TokenClass);
     }else if (token.TokenClass == QUE){
         rv->id = token.TokenString;
@@ -369,7 +426,10 @@ TreeNode *exp_prime(TreeNode *left) {
         if (p != NULL) {
             p->child[0] = left;
             p->child[1] = arith_term();
-            return exp_prime(p);
+            set_weight(p);
+            TreeNode* rv = exp_prime(p);
+            set_weight(rv);
+            return rv;
         }
     } else {
         return left;
@@ -385,7 +445,10 @@ TreeNode *term_prime(TreeNode *left) {
         if (p != NULL) {
             p->child[0] = left;
             p->child[1] = factor();
-            return term_prime(p);
+            set_weight(p);
+            TreeNode* rv = term_prime(p);
+            set_weight(rv);
+            return rv;
         }
     } else {
         return left;
@@ -714,13 +777,10 @@ TreeNode *construct_declarations(void) {
                 exit(1);
             }
         }
-
         else {
             cerr << "error [global var or function declaration type only support int and void]" <<endl;
             exit(1);
         }
-
-
     }
     return h;
 }

@@ -13,8 +13,10 @@ int main(int argc, char* argv[]){
         return 1;
     }
     st_string(st,0);
-    free_memory(root);
-    free_collector();
-    free_memory(st);
+   // free_memory(root);
+    //free_collector();
+    //free_memory(st);
+    code_generation(root,st);
+    print_code();
     return 0;
 }
