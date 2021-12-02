@@ -157,13 +157,16 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              if (!rv){
                  if (rv1){
                      emit(lda_or_ld,RM,used_r1,-1 - number_parameters + offset_rv1,FP);
+                     lda_or_ld = "LD";
                  }else{
                    //  cout << "144th\n";
                      emit(lda_or_ld,RM,used_r1,0 - offset_rv2,GP);
+                     lda_or_ld = "LD";
                  }
              }else{
                //  cout << "162th\n";
                  emit(lda_or_ld,RM,used_r1,1 + offset_rv,FP);
+                 lda_or_ld = "LD";
              }
          }
      }else if (root->op == ASSIGN){
@@ -304,12 +307,12 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
                  lda_or_ld = "LDA";
              }
              code_generation_expression(p,cur,start_register);
-             lda_or_ld = "LD";
              emit("ST", RM, used_r1, 0, SP);
              emit("LDA", RM, SP, 1, SP);
              p = p->next;
              argu = argu->next;
          }
+
          if (root->tail_recursion){
              int start = global_st->coll[root->id]->start;//find the beginning instruction ICounter
              int number_parameters = global_st->coll[root->id]->number_parameters;
@@ -332,6 +335,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              cout << "313th\n";
 
          }else{
+
              // push the fp to the stack
              emit("ST", RM, FP, 0, SP);
              emit("LDA", RM, SP, 1, SP);
@@ -350,7 +354,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              emit("LD", RM, FP, -1, FP);//reset FP to callee
              cout << "351th\n";
 
-         }
+        }
      }
      else if(root->op == NUM){//number
         // cout << "325th\n";
@@ -567,7 +571,7 @@ symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string
         int number_parameters = global_st->coll[st->scope]->number_parameters;
       //  cout << "356th\n";
         // sp to up
-        emit("LDA", RM, SP, 0 - number_parameters, FP);
+        emit("LDA", RM, SP, -1 - number_parameters, FP);
         // pc is the first fp
         emit("LD", RM, PC, 0, FP);
         //emit("LD", RM,FP, -1, FP);
