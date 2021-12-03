@@ -95,6 +95,8 @@ public:
     int weight;
     // bool from left or right
     bool left;
+    //  any argument is in nexted recursion
+    bool nested_recursion;
 };
 class parameter{
 public:
@@ -113,7 +115,6 @@ public:
     int size;
     int offset;
     int start;
-    int call;
     int number_parameters;
     parameter* parameters;
 

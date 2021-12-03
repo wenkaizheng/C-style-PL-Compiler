@@ -174,7 +174,7 @@ void ast_string(TreeNode* root, int space){
         spaces(space);
         cout << " code" << endl;
         spaces(space+1);
-        cout << "if  condition" << endl;
+        cout << "if condition" << endl;
         ast_string(root->child[0],space+2);
         if (root->child[1]){
             spaces(space+1);
@@ -211,13 +211,22 @@ void ast_string(TreeNode* root, int space){
         cout << "Call: " << root->id << endl;
         spaces(space+1);
         cout << "Call functions arguments: " << endl;
+        TreeNode* argu = root->child[0];
+        while(argu){
+            if (argu->id == function_names){
+                argu->nested_recursion = true;
+            }
+            argu = argu->next;
+        }
         if (root->child[0]){
             ast_string(root->child[0],2 + space);
         }
-        if (!root->next && function_names == root->id){
+        if (!root->next && function_names == root->id && !root->nested_recursion){
+            spaces(space);
             cout << "This is a tail recursion\n";
            root->tail_recursion = true;
         }
+
     }else{
         // all  + - * / = >= <= < > ! !=
         spaces(space);
@@ -265,6 +274,7 @@ TreeNode *newNode(TokenType tType) {
         t->size = -1;
         t->weight = 0;
         t->left = true;
+        t->nested_recursion = false;
     }
     return t;
 }

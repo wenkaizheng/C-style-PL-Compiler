@@ -13,11 +13,11 @@ static symbol_table* prev_st = NULL ;
 static string lda_or_ld = "LD";
 static int global_offset;
 static int not_counter = 0;
-static bool if_flag = false;
-static bool else_flag = false;
+//static bool if_flag = false;
+//static bool else_flag = false;
 static bool first = true;
 // we save the number of ICounter and used for adding back patching
-list<pair<string,int> > gap_array;
+list<int> gap_array;
 void emit(string code, OpCodeType ctype,
 	  int operand1, int operand2, int operand3, int index = -1) {
     int pos = -1;
@@ -174,7 +174,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
          int offset_rv,offset_rv1,offset_rv2;
          bool rv,rv1,rv2;
          rv = get_local_offset(cur,root->child[0]->id,offset_rv);
-       //  cout << rv << " " << offset_rv << " 137th\n";
+         cout << rv << " " << offset_rv << " 137th\n";
          rv1 = get_parameter_offset(cur->scope,root->child[0]->id,offset_rv1);
        //  cout << rv1<< " " << offset_rv1 << " 139th\n";
          rv2 = get_global_offset(root->child[0]->id,offset_rv2);
@@ -235,6 +235,8 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
                 }
             }else{
                 code_generation_expression(root->child[1],cur,start_register);
+                cout << "238th\n";
+                cout << offset_rv << endl;
                 emit("ST", RM, used_r1, 1 + offset_rv,FP);//assign: put val in R0 to dMem[val in R1];
             }
          }
@@ -332,7 +334,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
 
              emit("LDC", RM, PC, start, ZERO);//give control to callee which means beginning
             // emit("LD", RM, FP, -1, FP);
-             cout << "313th\n";
+             cout << "337th" << root->id <<"\n";
 
          }else{
 
@@ -352,7 +354,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              emit("LDC", RM, PC, start, ZERO);//give control to callee
 
              emit("LD", RM, FP, -1, FP);//reset FP to callee
-             cout << "351th\n";
+             cout << "357th" << root->id <<"\n";
 
         }
      }
@@ -368,6 +370,9 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
      }
 }
 void convert_comparison(int& op){
+    cout << "373th\n";
+    cout << not_counter << endl;
+    cout << op << endl << endl;
     if (not_counter % 2 == 1){
         if (op == LESS){
             op = GREATHAN;
@@ -414,7 +419,6 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
         int while_true = ICounter;
         int op = code_generation_comparison(root->child[0],cur,0);
         cout << "379th\n";
-        not_counter = 0;
         convert_comparison(op);
         cout << "382th\n";
         int while_false = ICounter;
@@ -442,24 +446,23 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
         // todo we need to jump the btk pointer to here
         // icounter -1， pop the gap array and change the break position
         if (gap_array.size() != 0){
-            pair<string,int> p = gap_array.front();
-            if (p.first == "if"){
-                emit("LDC",RM,PC,ICounter,0,p.second);
-                if_flag = false;
-            }else{
-                codeArray[p.second].rand2 = ICounter ;
-                else_flag = false;
-            }
+            int p = gap_array.front();
+           // if (p.first == "if"){
+             //   emit("LDC",RM,PC,ICounter,0,p.second);
+            //}else{
+                codeArray[p].rand2 = ICounter ;
+            //}
+            gap_array.pop_front();
         }
        // btk = true;
     }else if (root->op == IF){
         int op = code_generation_comparison(root->child[0],cur,0);
-        not_counter = 0;
+        cout << "462th\n";
         convert_comparison(op);
         int if_index = -1;
         if (root->child[1]){
-            if_flag = true;
-            else_flag = false;
+            //if_flag = true;
+            //else_flag = false;
             int else_index = ICounter;
             ICounter += 1;
             code_generation_statement(root->child[1],cur,id);
@@ -484,8 +487,8 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
             }
         }
         if (root->child[2]){
-            if_flag = false;
-            else_flag = true;
+           // if_flag = false;
+            //else_flag = true;
             ICounter += 1;
             code_generation_statement(root->child[2],cur,id);
             emit("LDC", RM, PC, ICounter, R0, if_index);
@@ -511,19 +514,8 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
             emit("OUT", RO, R0, R0, R0);
         }
     }else if(root->op == BREAK){
-        //todo we need to jump out of the while loop
-        // Icounter -1 is for the break case in else block
-        if (!if_flag == !else_flag){
-            gap_array.push_back(make_pair("if",ICounter));
-            ICounter += 1;
-        }
-        if (if_flag){
-            gap_array.push_back(make_pair("if",ICounter));
-            ICounter += 1;
-        }
-        if (else_flag){
-            gap_array.push_back(make_pair("else",ICounter-1));
-        }
+        gap_array.push_back(ICounter);
+        emit("LDC", RM, PC, -1, R0);
 
     }else{
        // cout << "462th\n";
