@@ -314,7 +314,6 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              p = p->next;
              argu = argu->next;
          }
-
          if (root->tail_recursion){
              int start = global_st->coll[root->id]->start;//find the beginning instruction ICounter
              int number_parameters = global_st->coll[root->id]->number_parameters;
@@ -561,6 +560,7 @@ symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string
         cout << "559th\n";
         cout << st->scope << endl;
         int number_parameters = global_st->coll[st->scope]->number_parameters;
+        cout << number_parameters << endl;
       //  cout << "356th\n";
         // sp to up
         emit("LDA", RM, SP, -1 - number_parameters, FP);
@@ -575,6 +575,10 @@ void code_generation_parameters(TreeNode* root, symbol* s){
       int number_of_parameters = 0;
       parameter* h = NULL, *t = NULL;
       while(root){
+          if(root->type == VOID){
+              root = root->next;
+              continue;
+          }
           parameter* p = new parameter();
           p->type = root->type;
           p->offset = number_of_parameters;
@@ -630,9 +634,9 @@ void code_generation(TreeNode* root,symbol_table* prev){
             if(root->id == "main"){
                // int record_icounter = ICounter;
                if(ICounter == 1) {
+                   emit("LDC", RM, PC, ICounter + 1, R0);
                    emit("LDC", RM, FP, 1, R0);
                    emit("LDC", RM, SP, 2, R0);
-                   emit("LDC", RM, PC, ICounter + 1, R0);
                }else{
                    int record_icounter = ICounter;
                    emit("LDC", RM, FP, 1, R0);
