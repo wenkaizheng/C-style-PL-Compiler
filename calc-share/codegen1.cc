@@ -16,6 +16,7 @@ static int not_counter = 0;
 //static bool if_flag = false;
 //static bool else_flag = false;
 static bool first = true;
+static bool return_already = false;
 // we save the number of ICounter and used for adding back patching
 list<int> gap_array;
 void emit(string code, OpCodeType ctype,
@@ -245,7 +246,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
      }else if(root->op == PLUS || root->op == SUB || root->op == TIMES || root->op ==DIV){
          if (root->left){
              code_generation_expression(root->child[0], cur, start_register);
-             if (root->weight + start_register > 3) {
+             if (root->weight + start_register > 3 || root->child[1]->op == CFUNCTION || root->child[0]->op == CFUNCTION) {
                  cout << "237th\n";
                  emit("ST", RM, used_r1, 0, SP);
                  emit("LDA", RM, SP, 1, SP);
@@ -259,7 +260,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
          }else{
              cout << "255th  " << root->child[1]->id << endl;
              code_generation_expression(root->child[1], cur, start_register);
-             if (root->weight + start_register > 3){
+             if (root->weight + start_register > 3 || root->child[0]->op == CFUNCTION || root->child[1]->op == CFUNCTION){
                  // store r1 and let next used r1 and r2
                  cout << root->weight << endl;
                  cout << start_register + 1 << " 258th\n";
@@ -276,7 +277,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              }
          }
          //restore the value in sp
-         if (root->weight + start_register > 3 ){
+         if (root->weight + start_register > 3 || root->child[1]->op == CFUNCTION || root->child[0]->op == CFUNCTION){
              emit("LD", RM, used_r2, -1, SP);//R1
              emit("LDA", RM, SP, -1, SP);//SP--
          }
@@ -284,7 +285,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
          if(root->op == PLUS){
              emit("ADD", RO, used_r1, used_r2, used_r1);
          }else if(root->op == SUB){
-             if (root->weight + start_register > 3 ){
+             if (root->weight + start_register > 3 || root->child[0]->op == CFUNCTION || root->child[1]->op == CFUNCTION){
                  emit("SUB", RO, used_r1, used_r2, used_r1);
              }
              else {
@@ -293,7 +294,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
          }else if(root->op == TIMES){
              emit("MUL", RO, used_r1, used_r2, used_r1);
          }else{
-             if (root->weight + start_register > 3 ){
+             if (root->weight + start_register > 3 || root->child[0]->op == CFUNCTION || root->child[1]->op == CFUNCTION ){
                  emit("DIV", RO, used_r1, used_r2, used_r1);
              }else {
                  emit("DIV", RO, used_r1, used_r1, used_r2);
@@ -336,7 +337,6 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              cout << "337th" << root->id <<"\n";
 
          }else{
-
              // push the fp to the stack
              emit("ST", RM, FP, 0, SP);
              emit("LDA", RM, SP, 1, SP);
@@ -354,8 +354,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
 
              emit("LD", RM, FP, -1, FP);//reset FP to callee
              cout << "357th" << root->id <<"\n";
-
-        }
+         }
      }
      else if(root->op == NUM){//number
         // cout << "325th\n";
@@ -365,7 +364,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
         // cout << global_st->coll.size() << endl;
 
      }else if(root->op == QUE){//user input
-         emit("IN", RO, R0, R0, R0);
+         emit("IN", RO, used_r1, used_r1, used_r1);
      }
 }
 void convert_comparison(int& op){
@@ -492,6 +491,9 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
             code_generation_statement(root->child[2],cur,id);
             emit("LDC", RM, PC, ICounter, R0, if_index);
         }else{
+            cout << "493th\n";
+            cout << if_index <<  endl;
+            cout << ICounter << endl;
             emit("LDC", RM, PC, ICounter, R0, if_index);
         }
     }else if(root->op == BLOCK){
@@ -511,6 +513,12 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
         cout << "437th\n";
         if (root->op == OUT){
             emit("OUT", RO, R0, R0, R0);
+        }else{
+            int number_parameters = global_st->coll[id]->number_parameters;
+            emit("LDA", RM, SP, -1 - number_parameters, FP);
+            // pc is the first fp
+            emit("LD", RM, PC, 0, FP);
+            return_already = true;
         }
     }else if(root->op == BREAK){
         gap_array.push_back(ICounter);
@@ -552,11 +560,12 @@ symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string
     t = root->child[1];
     while(t){
         code_generation_statement(t,st,st->scope);
+        cout << "556th\n";
         t = t->next;
       //  cout << "428th\n";
     }
    // cout << "353th\n";
-    if(st->scope != "main" && func){
+    if(st->scope != "main" && func && !return_already){
         cout << "559th\n";
         cout << st->scope << endl;
         int number_parameters = global_st->coll[st->scope]->number_parameters;
@@ -568,6 +577,7 @@ symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string
         emit("LD", RM, PC, 0, FP);
         //emit("LD", RM,FP, -1, FP);
     }
+    return_already = false;
     return st;
 
 }
