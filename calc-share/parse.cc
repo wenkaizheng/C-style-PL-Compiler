@@ -80,91 +80,91 @@ void free_memory(TreeNode* root){
 }
 void spaces(int num){
     for(int i = 0; i< num; i++){
-        cout << ' ';
+       // cout << ' ';
     }
 }
 void ast_string(TreeNode* root, int space){
     //cout << root->op << endl;
     if (root->op == NUM){
         spaces(space);
-        cout << "Const: " << root->val << endl;
+       // cout << "Const: " << root->val << endl;
     }
     else if (root->op == VAR){
         spaces(space);
-        cout << "Var: " << root->id;
+       // cout << "Var: " << root->id;
         if (root->array){
-            cout << "[]" << endl;
+          //  cout << "[]" << endl;
             spaces(space+1);
-            cout << "index expression: " << endl;
+           // cout << "index expression: " << endl;
             ast_string(root->child[0],space+2);
         }else{
-            cout << "\n";
+           // cout << "\n";
         }
     }
     else if (root->op == BLOCK){
         spaces(space);
-        cout << "BLOCK" << endl;
+       // cout << "BLOCK" << endl;
         TreeNode* c = root->child[0];
         if ( c == NULL){
             spaces(1+space);
-            cout << "Local var declaration: " << endl;
+           // cout << "Local var declaration: " << endl;
         }
         while(c){
             spaces(1+space);
-            cout << "Local var declaration: " << c->id << " " << "(type: "  << string_val(c->type)  << ")";
+            //cout << "Local var declaration: " << c->id << " " << "(type: "  << string_val(c->type)  << ")";
             if (c->array){
-                cout << "[" << c->size << "]";
+                //cout << "[" << c->size << "]";
             }
-            cout << "\n";
+           // cout << "\n";
             c = c->next;
         }
         spaces(1+space);
         if (root->child[1]){
-            cout << "Local statements: "<< endl;
+            //cout << "Local statements: "<< endl;
             ast_string(root->child[1],space +2);
             if (root->child[1]->tail_recursion && while_tail_recur && !return_ocur){
                  root->child[1]->tail_recursion = false;
-                cout << "This is not a tail recursion\n";
+               // cout << "This is not a tail recursion\n";
             }
             return_ocur = false;
         }else{
-            cout << "Local statements: "<< endl;
+           // cout << "Local statements: "<< endl;
         }
     }
     else if (root->op == VDECLARE){
-        cout << "Global var declaration: " << root->id << " " << "(type: "  << string_val(root->type)  << ")";
+       // cout << "Global var declaration: " << root->id << " " << "(type: "  << string_val(root->type)  << ")";
         if (root->array){
-            cout << "[" << root->size << "]";
+            //cout << "[" << root->size << "]";
         }
-        cout << "\n";
+       // cout << "\n";
     }
     else if (root->op == FDECLARE){
         function_names = root->id;
-        cout << "Global function declaration: " << root->id << " " << "(type: "  << string_val(root->type)  << ")\n";
+        //cout << "Global function declaration: " << root->id << " " << "(type: "  << string_val(root->type)  << ")\n";
         // print parameter list
         TreeNode* c = root->child[0];
         if ( c == NULL){
-            cout << "Function parameter: " << endl;
+           // cout << "Function parameter: " << endl;
         }
         while(c){
-            cout << "Function parameters: " << c->id << " " << "(type: "  << string_val(c->type)  << ")";
+           // cout << "Function parameters: " << c->id << " " << "(type: "  << string_val(c->type)  << ")";
             if (c->array){
-                cout << "[]";
+               // cout << "[]";
             }
-            cout << "\n";
+            //cout << "\n";
             c = c ->next;
         }
         ast_string(root->child[1],1);
     }
     else if (root->op == WHILE){
         spaces(space);
-        cout << "Repetition code" << endl;
+       // cout << "Repetition code" << endl;
         spaces(space+1);
-        cout << "while condition" << endl;
+       // cout << "while condition" << endl;
         ast_string(root->child[0],space+2);
         if (root->child[1]){
             spaces(space+1);
-            cout << "while code" << endl;
+           // cout << "while code" << endl;
             while_tail_recur = true;
             ast_string(root->child[1],space+2);
             while_tail_recur = false;
@@ -172,31 +172,31 @@ void ast_string(TreeNode* root, int space){
     }
     else if (root->op == IF){
         spaces(space);
-        cout << " code" << endl;
+       // cout << " code" << endl;
         spaces(space+1);
-        cout << "if condition" << endl;
+        //cout << "if condition" << endl;
         ast_string(root->child[0],space+2);
         if (root->child[1]){
             spaces(space+1);
-            cout << "if code" << endl;
+           // cout << "if code" << endl;
             ast_string(root->child[1],space+2);
         }
         if (root->child[2]){
             spaces(space+1);
-            cout << "else code" << endl;
+           // cout << "else code" << endl;
             ast_string(root->child[2],space+2);
         }
     }
     else if (root->op == OUT){
         spaces(space);
-        cout << "Out" << endl;
+       // cout << "Out" << endl;
         if (root->child[0]){
             ast_string(root->child[0],space+1);
         }
     }
     else if (root->op == RETURN){
         spaces(space);
-        cout << "Return" << endl;
+       // cout << "Return" << endl;
         return_ocur = true;
         if (root->child[0]){
             ast_string(root->child[0],space+1);
@@ -204,13 +204,13 @@ void ast_string(TreeNode* root, int space){
     }
     else if (root->op == BREAK){
         spaces(space);
-        cout << "Break" << endl;
+       // cout << "Break" << endl;
     }
     else if (root->op == CFUNCTION){
         spaces(space);
-        cout << "Call: " << root->id << endl;
+       // cout << "Call: " << root->id << endl;
         spaces(space+1);
-        cout << "Call functions arguments: " << endl;
+       // cout << "Call functions arguments: " << endl;
         TreeNode* argu = root->child[0];
         while(argu){
             if (argu->id == function_names){
@@ -223,26 +223,24 @@ void ast_string(TreeNode* root, int space){
         }
         if (!root->next && function_names == root->id && !root->nested_recursion){
             spaces(space);
-            cout << "This is a tail recursion\n";
            root->tail_recursion = true;
         }
 
     }else{
         // all  + - * / = >= <= < > ! !=
         spaces(space);
-        cout << "Op: "<< string_val(root->op) << endl;
+        //cout << "Op: "<< string_val(root->op) << endl;
         spaces(space);
-        cout << "left first " << root->left  << endl;
+       // cout << "left first " << root->left  << endl;
         spaces(space);
-        cout << "Weight:" << root->weight << endl;
+       // cout << "Weight:" << root->weight << endl;
         for(int i = 0;i<MAXCHILDREN;i++){
             if (root->child[i]){
                 spaces(space);
-                cout << "child " << i << endl;
+               // cout << "child " << i << endl;
                 ast_string(root->child[i],space+1);
                 if (root->child[i]->tail_recursion){
                     root->child[i]->tail_recursion = false;
-                    cout << "This is not a tail recursion\n";
                 }
             }
         }
