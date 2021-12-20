@@ -258,7 +258,8 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              p = p->next;
              argu = argu->next;
          }
-
+         // it can be removed once the bug is solved
+         root->tail_recursion = false;
          if (root->tail_recursion){
              int start = global_st->coll[root->id]->start;//find the beginning instruction ICounter
              int number_parameters = global_st->coll[root->id]->number_parameters;
