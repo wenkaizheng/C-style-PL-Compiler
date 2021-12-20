@@ -3,7 +3,7 @@
 #include<list>
 #include<map>
 /* Code Generation for IBM */
-symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string id,bool function);
+symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string id,bool function,int block_id = -1);
 static CodeType codeArray[CODESIZE];
 static int ICounter = 0;
 static int C_OFFSET = 997; // the *fixed* address assigned to variable 'a'
@@ -15,8 +15,11 @@ static int global_offset;
 static int not_counter = 0;
 static bool first = true;
 static bool return_already = false;
+static int bid = 0;
 // we save the number of ICounter and used for adding back patching
-list<int> gap_array;
+// first is block id
+// second is the icounter
+list< pair<int,int> > gap_array;
 void emit(string code, OpCodeType ctype,
 	  int operand1, int operand2, int operand3, int index = -1) {
     int pos = -1;
@@ -96,6 +99,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              // find the address of element in array and load it into r0
              if (!rv){
                  if (rv1){
+                     cout << "99th\n";
                      emit("LD",RM,used_r2,-1 - number_parameters + offset_rv1,FP);
                      emit("ADD", RO, used_r1, used_r2, used_r1);
                      emit("LD", RM, used_r1, 0, used_r1);
@@ -138,6 +142,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
                  if (rv1){
                      //para
                     // FP - 1 - (number of parameters - offset)
+                     cout << "142th\n";
                      int number_parameters = global_st->coll[cur->scope]->number_parameters;
                      emit("LD",RM,used_r2,-1 - number_parameters + offset_rv1,FP);
                      emit("ADD", RO, used_r1,used_r2, used_r1);
@@ -243,16 +248,17 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
          TreeNode* p = root->child[0];
          // we load the parameters into stack
          parameter* argu =  prev_st->coll[root->id]->parameters;
-         while(p){
-             if (argu->array){
+         while(p) {
+             if (argu->array) {
                  lda_or_ld = "LDA";
              }
-             code_generation_expression(p,cur,start_register);
+             code_generation_expression(p, cur, start_register);
              emit("ST", RM, used_r1, 0, SP);
              emit("LDA", RM, SP, 1, SP);
              p = p->next;
              argu = argu->next;
          }
+
          if (root->tail_recursion){
              int start = global_st->coll[root->id]->start;//find the beginning instruction ICounter
              int number_parameters = global_st->coll[root->id]->number_parameters;
@@ -271,6 +277,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              emit("LDC", RM, PC, start, ZERO);
 
          }else{
+
              // push the fp to the stack
              emit("ST", RM, FP, 0, SP);
              emit("LDA", RM, SP, 1, SP);
@@ -334,15 +341,16 @@ int code_generation_comparison(TreeNode* root, symbol_table* cur, int start_regi
         return root->op;
     }
 }
-void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
+void code_generation_statement(TreeNode* root,  symbol_table* cur, string id, int block_id = -1){
     if (root->op == WHILE){
         int while_true = ICounter;
         int op = code_generation_comparison(root->child[0],cur,0);
         convert_comparison(op);
         int while_false = ICounter;
         ICounter += 1;
+        int b = bid ++;
         if (root->child[1]){
-            code_generation_statement(root->child[1],cur,id);
+            code_generation_statement(root->child[1],cur,id,b);
         }
         emit("LDC",RM,PC,while_true,R0);
         if (op == LESS){
@@ -359,10 +367,18 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
             emit("JEQ",RM,R0,ICounter,ZERO,while_false);
         }
         // we need to jump the btk pointer to here
-        if (gap_array.size() != 0){
-            int p = gap_array.front();
-            codeArray[p].rand2 = ICounter ;
-            gap_array.pop_front();
+        std::list<pair<int,int> >::iterator i = gap_array.begin();
+        while (i != gap_array.end())
+        {
+            if (i->first == b)
+            {
+                codeArray[i->second].rand2 = ICounter ;
+                gap_array.erase(i++);  // alternatively, i = items.erase(i);
+            }
+            else
+            {
+                ++i;
+            }
         }
     }else if (root->op == IF){
         int op = code_generation_comparison(root->child[0],cur,0);
@@ -371,7 +387,7 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
         if (root->child[1]){
             int else_index = ICounter;
             ICounter += 1;
-            code_generation_statement(root->child[1],cur,id);
+            code_generation_statement(root->child[1],cur,id,block_id);
             if_index = ICounter;
             int else_true = ICounter;
             if (root->child[2]){
@@ -394,20 +410,20 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
         }
         if (root->child[2]){
             ICounter += 1;
-            code_generation_statement(root->child[2],cur,id);
+            code_generation_statement(root->child[2],cur,id,block_id);
             emit("LDC", RM, PC, ICounter, R0, if_index);
         }else{
             emit("LDC", RM, PC, ICounter, R0, if_index);
         }
     }else if(root->op == BLOCK){
         if(cur->children == NULL){
-            cur->children = code_generation_block(root,cur,id, false);
+            cur->children = code_generation_block(root,cur,id, false,block_id);
         }else{
             symbol_table* walker = cur->children;
             while(walker->next){
                 walker = walker->next;
             }
-            walker->next = code_generation_block(root,cur,id, false);
+            walker->next = code_generation_block(root,cur,id, false,block_id);
         }
     }else if (root->op == RETURN || root->op == OUT){
         code_generation_expression(root->child[0],cur,0);
@@ -423,14 +439,14 @@ void code_generation_statement(TreeNode* root,  symbol_table* cur, string id){
             }
         }
     }else if(root->op == BREAK){
-        gap_array.push_back(ICounter);
+        gap_array.push_back(make_pair(block_id,ICounter));
         emit("LDC", RM, PC, -1, R0);
 
     }else{
         code_generation_expression(root,cur,0);
     };
 }
-symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string id, bool func){
+symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string id, bool func, int block_id){
     symbol_table* st = new symbol_table();
     st->offset = parent->offset;
     st->scope = id;
@@ -455,7 +471,7 @@ symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string
     }
     t = root->child[1];
     while(t){
-        code_generation_statement(t,st,st->scope);
+        code_generation_statement(t,st,st->scope,block_id);
         t = t->next;
     }
     if(st->scope != "main" && func && !return_already){
