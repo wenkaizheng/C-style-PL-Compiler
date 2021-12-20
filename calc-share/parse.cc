@@ -356,7 +356,7 @@ TreeNode* construct_expression_helper() {
         t->id = token.TokenString;
         advance(token.TokenClass);
         TreeNode* tmp = construct_id(t);
-        set_weight(tmp);
+       // set_weight(tmp);
         //return var_op(tmp);
         TreeNode* rv = NULL;
         if (token.TokenClass == PLUS || token.TokenClass == SUB){

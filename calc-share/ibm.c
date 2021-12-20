@@ -16,8 +16,8 @@
 #endif
 
 /******* const *******/
-#define   IADDR_SIZE  1024 /* increase for large programs */
-#define   DADDR_SIZE  1024 /* increase for large programs */
+#define   IADDR_SIZE  1024000 /* increase for large programs */
+#define   DADDR_SIZE  1024000 /* increase for large programs */
 #define   NO_REGS 8
 #define   PC_REG  7
 
