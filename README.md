@@ -107,6 +107,10 @@ argument → expression
 
 ./ibm test_program_out
 
-Tail recursion is depreciated since it has some bug.
+Tail recursion is implemented.
 
 The register allocation method I used is Sethi–Ullman algorithm.
+
+Please note that the inner block function is not well implmented so it may contains couple problem.
+
+e.g.  int main(void) { {int a; a = 10}}
