@@ -16,6 +16,7 @@ static int not_counter = 0;
 static bool first = true;
 static bool return_already = false;
 static int bid = 0;
+static map<string,int> function_offset_sp;
 // we save the number of ICounter and used for adding back patching
 // first is block id
 // second is the icounter
@@ -99,7 +100,6 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              // find the address of element in array and load it into r0
              if (!rv){
                  if (rv1){
-                     cout << "99th\n";
                      emit("LD",RM,used_r2,-1 - number_parameters + offset_rv1,FP);
                      emit("ADD", RO, used_r1, used_r2, used_r1);
                      emit("LD", RM, used_r1, 0, used_r1);
@@ -142,7 +142,6 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
                  if (rv1){
                      //para
                     // FP - 1 - (number of parameters - offset)
-                     cout << "142th\n";
                      int number_parameters = global_st->coll[cur->scope]->number_parameters;
                      emit("LD",RM,used_r2,-1 - number_parameters + offset_rv1,FP);
                      emit("ADD", RO, used_r1,used_r2, used_r1);
@@ -259,7 +258,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              argu = argu->next;
          }
          // it can be removed once the bug is solved
-         root->tail_recursion = false;
+         //root->tail_recursion = false;
          if (root->tail_recursion){
              int start = global_st->coll[root->id]->start;//find the beginning instruction ICounter
              int number_parameters = global_st->coll[root->id]->number_parameters;
@@ -275,6 +274,7 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
                  number_parameters -=1;
                  offset -= 1;
              }
+             emit("LDA", RM, SP, 0 -function_offset_sp[root->id] , SP);
              emit("LDC", RM, PC, start, ZERO);
 
          }else{
@@ -290,7 +290,6 @@ void code_generation_expression(TreeNode* root, symbol_table* cur, int start_reg
              emit("LDA", RM, SP, 1, SP);
 
              int start = global_st->coll[root->id]->start;
-
              emit("LDC", RM, PC, start, ZERO);
              emit("LD", RM, FP, -1, FP);
          }
@@ -470,6 +469,7 @@ symbol_table* code_generation_block(TreeNode* root, symbol_table* parent, string
         st->coll.insert(make_pair(t->id,s));
         t = t->next;
     }
+    function_offset_sp.insert(make_pair(id,st->offset));
     t = root->child[1];
     while(t){
         code_generation_statement(t,st,st->scope,block_id);
