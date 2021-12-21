@@ -101,7 +101,7 @@ arguments → ,argument arguments’ | ε
 
 argument → expression
 
-# This compiler uses IBM instruction, for tesing it try following command
+# This compiler uses IBM instruction, for testing it try following commands
 
 ./test < test_progam> test_program_out
 
