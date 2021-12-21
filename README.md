@@ -1,4 +1,4 @@
-# Create my own complier step by step
+# Create my own compiler step by step
  Four main parts are Scanner,Parser(Abstract Syntax Tree),Semantic checker, Code generator
 
 To compile this project:
